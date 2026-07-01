@@ -300,6 +300,19 @@ jobs:
               .image.tag = "'"${VERSION}"'"
             ' goodmrng/values/values-dev.yaml
 
+        - name: Debug Workspace
+          run: |
+            echo "Current Directory"
+            pwd
+
+            echo "Workspace"
+
+            ls -la
+
+            echo "Repository Tree"
+
+            find . -maxdepth 3
+            
         - name: Render Helm Templates
 
           run: |
