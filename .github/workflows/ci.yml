@@ -253,126 +253,70 @@ jobs:
           docker push $IMAGE:latest
 
   update-gitops:
-    
-      runs-on: ubuntu-latest
-    
-      needs:
-        - setversion
-        - deploy
-    
-      if: inputs.publish == 'true'
-    
-      env:
-        VERSION: ${{ needs.setversion.outputs.new_version }}
-    
-      steps:
-
-        # Checkout the current application repository
-        - name: Checkout Application Repository
-          uses: actions/checkout@v5
-          with:
-            path: app
-
-        # Checkout the GitOps repository
-        - name: Checkout GitOps Repository
-          uses: actions/checkout@v5
-          with:
-            repository: backstage2k26-cpu/gitops-nonprod
-            token: ${{ secrets.GITOPS_TOKEN }}
-            path: gitops
-
-        - name: Install yq
-          run: |
-            sudo wget \
-              https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
-              -O /usr/local/bin/yq
-    
-            sudo chmod +x /usr/local/bin/yq
-
-        - name: Install Helm
-          uses: azure/setup-helm@v4
-
-        - name: Verify Helm
-          run: helm version
-    
-        - name: Update values-dev.yaml
-          run: |
-    
-            cd gitops
-    
-            IMAGE=${{ secrets.DOCKERHUB_USERNAME_1 }}/${{ github.event.repository.name }}
-    
-            yq -i '
-              .image.repository = "'"${IMAGE}"'" |
-              .image.tag = "'"${VERSION}"'"
-            ' goodmrng/values/values-dev.yaml
-
-        - name: Debug Workspace
-          run: |
-            echo "Current Directory"
-            pwd
-
-            echo "Workspace"
-
-            ls -la
-
-            echo "Repository Tree"
-
-            find . -maxdepth 4
-            
-        - name: Render Helm Templates
-
-          run: |
-
-            mkdir -p rendered
-
-            helm template \
-              ${{ github.event.repository.name }} \
-              app/helm/app \
-              -f gitops/goodmrng/values/values-dev.yaml \
-              > rendered/application-dev.yaml 
-
-        - name: Copy Rendered Manifest
-
-          run: |
-
-            cp \
-              rendered/application-dev.yaml \
-              gitops/goodmrng/applications/application-dev.yaml      
-
-        - name: Show Generated Files
-
-          run: |
-
-            echo "========== VALUES =========="
-
-            cat gitops/goodmrng/values/values-dev.yaml
-
-            echo
-
-            echo "========== APPLICATION =========="
-
-            head -100 \
-              gitops/goodmrng/applications/application-dev.yaml
-
-        - name: Commit Changes
-          run: |
-    
-            cd gitops
-    
-            git config user.name github-actions
-    
-            git config user.email github-actions@github.com
-    
-            git add .
-    
-            git diff --cached --quiet || \
-            git commit -m "Update values and regenerate manifests ${VERSION}"
-    
-        - name: Push
-          run: |
-            cd gitops
-            git push origin main  
+      
+        runs-on: ubuntu-latest
+      
+        needs:
+          - setversion
+          - deploy
+      
+        if: inputs.publish == 'true'
+      
+        env:
+          VERSION: ${{ needs.setversion.outputs.new_version }}
+      
+        steps:
+      
+          - name: Checkout GitOps Repository
+            uses: actions/checkout@v5
+            with:
+              repository: backstage2k26-cpu/gitops-nonprod
+              token: ${{ secrets.GITOPS_TOKEN }}
+              path: gitops
+      
+          - name: Install yq
+            run: |
+              sudo wget \
+                https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+                -O /usr/local/bin/yq
+      
+              sudo chmod +x /usr/local/bin/yq
+      
+          - name: Update values-dev.yaml
+            run: |
+      
+              cd gitops
+      
+              IMAGE=${{ secrets.DOCKERHUB_USERNAME_1 }}/${{ github.event.repository.name }}
+      
+              yq -i '
+                .image.repository = "'"${IMAGE}"'" |
+                .image.tag = "'"${VERSION}"'"
+              ' goodmrng/values/values-dev.yaml
+      
+          - name: Show Changes
+            run: |
+              cd gitops
+              cat goodmrng/values/values-dev.yaml
+      
+          - name: Commit Changes
+            run: |
+      
+              cd gitops
+      
+              git config user.name github-actions
+      
+              git config user.email github-actions@github.com
+      
+              git add .
+      
+              git diff --cached --quiet || \
+              git commit -m "Update image to ${VERSION}"
+      
+          - name: Push
+            run: |
+              cd gitops
+              git push origin main
   # ==========================
   # ARGOCD DEPLOY
   # ==========================
