@@ -299,6 +299,7 @@ jobs:
               .image.repository = "'"${IMAGE}"'" |
               .image.tag = "'"${VERSION}"'"
             ' goodmrng/values/values-dev.yaml
+
         - name: Render Helm Templates
 
           run: |
@@ -307,14 +308,33 @@ jobs:
 
             helm template \
               ${{ github.event.repository.name }} \
-              ./helm \
+              ./helm/app \
               -f gitops/goodmrng/values/values-dev.yaml \
-              > rendered/application-dev.yaml        
-        - name: Show Changes
+              > rendered/application-dev.yaml   
+
+        - name: Copy Rendered Manifest
+
           run: |
-            cd gitops
-            cat goodmrng/values/values-dev.yaml
-    
+
+            cp \
+              rendered/application-dev.yaml \
+              gitops/goodmrng/applications/application-dev.yaml      
+
+        - name: Show Generated Files
+
+          run: |
+
+            echo "========== VALUES =========="
+
+            cat gitops/goodmrng/values/values-dev.yaml
+
+            echo
+
+            echo "========== APPLICATION =========="
+
+            head -100 \
+              gitops/goodmrng/applications/application-dev.yaml
+
         - name: Commit Changes
           run: |
     
@@ -327,7 +347,7 @@ jobs:
             git add .
     
             git diff --cached --quiet || \
-            git commit -m "Update image to ${VERSION}"
+            git commit -m "Update values and regenerate manifests ${VERSION}"
     
         - name: Push
           run: |
