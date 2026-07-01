@@ -266,7 +266,14 @@ jobs:
         VERSION: ${{ needs.setversion.outputs.new_version }}
     
       steps:
-    
+
+        # Checkout the current application repository
+        - name: Checkout Application Repository
+          uses: actions/checkout@v5
+          with:
+            path: app
+
+        # Checkout the GitOps repository
         - name: Checkout GitOps Repository
           uses: actions/checkout@v5
           with:
@@ -311,7 +318,7 @@ jobs:
 
             echo "Repository Tree"
 
-            find . -maxdepth 3
+            find . -maxdepth 4
             
         - name: Render Helm Templates
 
@@ -321,9 +328,9 @@ jobs:
 
             helm template \
               ${{ github.event.repository.name }} \
-              ./helm/app \
+              app/helm/app \
               -f gitops/goodmrng/values/values-dev.yaml \
-              > rendered/application-dev.yaml   
+              > rendered/application-dev.yaml 
 
         - name: Copy Rendered Manifest
 
