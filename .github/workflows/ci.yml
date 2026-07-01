@@ -273,7 +273,7 @@ jobs:
             repository: backstage2k26-cpu/gitops-nonprod
             token: ${{ secrets.GITOPS_TOKEN }}
             path: gitops
-    
+
         - name: Install yq
           run: |
             sudo wget \
@@ -281,6 +281,12 @@ jobs:
               -O /usr/local/bin/yq
     
             sudo chmod +x /usr/local/bin/yq
+
+        - name: Install Helm
+          uses: azure/setup-helm@v4
+
+        - name: Verify Helm
+          run: helm version
     
         - name: Update values-dev.yaml
           run: |
@@ -293,7 +299,17 @@ jobs:
               .image.repository = "'"${IMAGE}"'" |
               .image.tag = "'"${VERSION}"'"
             ' goodmrng/values/values-dev.yaml
-    
+        - name: Render Helm Templates
+
+          run: |
+
+            mkdir -p rendered
+
+            helm template \
+              ${{ github.event.repository.name }} \
+              ./helm \
+              -f gitops/goodmrng/values/values-dev.yaml \
+              > rendered/application-dev.yaml        
         - name: Show Changes
           run: |
             cd gitops
